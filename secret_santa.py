@@ -1,5 +1,4 @@
 import yaml
-# sudo pip install pyyaml
 import re
 import random
 import smtplib
@@ -10,13 +9,14 @@ import socket
 import sys
 import getopt
 import os
+import markdown
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 
 help_message = '''
-To use, fill out config.yml with your own participants. You can also specify 
-DONT-PAIR so that people don't get assigned their significant other.
+To use, fill out config.yml with your own participants.
 
-You'll also need to specify your mail server settings. An example is provided
-for routing mail through gmail.
+You'll also need to specify your mail server settings.
 
 For more information, see README.
 '''
@@ -28,8 +28,7 @@ REQRD = (
     'PASSWORD', 
     'TIMEZONE', 
     'PARTICIPANTS', 
-    'DONT-PAIR', 
-    'FROM', 
+    'FROM',
     'SUBJECT', 
     'MESSAGE',
 )
@@ -45,14 +44,20 @@ Subject: {subject}
 
 CONFIG_PATH = os.path.join(os.path.dirname(__file__), 'config.yml')
 
+
 class Person:
-    def __init__(self, name, email, invalid_matches):
+    def __init__(self, name, email, invalid_matches, amazon):
         self.name = name
         self.email = email
         self.invalid_matches = invalid_matches
-    
+        self.amazon = amazon
+
+    def amazon_url(self):
+        return self.amazon
+
     def __str__(self):
         return "%s <%s>" % (self.name, self.email)
+
 
 class Pair:
     def __init__(self, giver, reciever):
@@ -117,23 +122,16 @@ def main(argv=None):
                     'Required parameter %s not in yaml config file!' % (key,))
 
         participants = config['PARTICIPANTS']
-        dont_pair = config['DONT-PAIR']
+        # dont_pair = config['DONT-PAIR']
         if len(participants) < 2:
             raise Exception('Not enough participants specified.')
         
         givers = []
         for person in participants:
-            name, email = re.match(r'([^<]*)<([^>]*)>', person).groups()
+            name, email, amazon = re.match(r'([^<]*)<([^>]*)>.*(http.*)', person).groups()
             name = name.strip()
             invalid_matches = []
-            for pair in dont_pair:
-                names = [n.strip() for n in pair.split(',')]
-                if name in names:
-                    # is part of this pair
-                    for member in names:
-                        if name != member:
-                            invalid_matches.append(member)
-            person = Person(name, email, invalid_matches)
+            person = Person(name, email, invalid_matches, amazon)
             givers.append(person)
         
         recievers = givers[:]
@@ -152,10 +150,12 @@ call with the --send argument:
             """ % ("\n".join([str(p) for p in pairs]))
         
         if send:
-            server = smtplib.SMTP(config['SMTP_SERVER'], config['SMTP_PORT'])
-            server.starttls()
+            server = smtplib.SMTP_SSL(config['SMTP_SERVER'], config['SMTP_PORT'])
+            # server.starttls()
             server.login(config['USERNAME'], config['PASSWORD'])
         for pair in pairs:
+            msg = MIMEMultipart('alternative')
+
             zone = pytz.timezone(config['TIMEZONE'])
             now = zone.localize(datetime.datetime.now())
             date = now.strftime('%a, %d %b %Y %T %Z') # Sun, 21 Dec 2008 06:25:23 +0000
@@ -163,18 +163,40 @@ call with the --send argument:
             frm = config['FROM']
             to = pair.giver.email
             subject = config['SUBJECT'].format(santa=pair.giver.name, santee=pair.reciever.name)
-            body = (HEADER+config['MESSAGE']).format(
+            message = config['MESSAGE']
+            if message == 'markdown':
+                template_file = config['TEMPLATE']
+                file_handle = open(template_file, 'r')
+                raw = file_handle.read()
+                message = markdown.markdown(raw)
+                # if config['TEMPLATE_LOGO']:
+                #     message += """<br><img src="cid:logo.png"><br>"""
+
+            body = message.format(
                 date=date, 
                 message_id=message_id, 
                 frm=frm, 
-                to=to, 
+                to=to,
                 subject=subject,
                 santa=pair.giver.name,
                 santee=pair.reciever.name,
+                santee_email=pair.reciever.email,
+                amazon=pair.reciever.amazon
             )
+            if config['TEMPLATE_LOGO']:
+                    image_url = config['TEMPLATE_IMAGE']
+                    body += """<div align="center"><img alt="Bender Logo" src="{encoded}" /></div>""".format(encoded=image_url)
+            msg['Subject'] = subject
+            msg['From'] = frm
+            msg['To'] = to
             if send:
-                result = server.sendmail(frm, [to], body)
-                print "Emailed %s <%s>" % (pair.giver.name, to)
+                part1 = MIMEText(body, 'html')
+                msg.attach(part1)
+
+                result = server.sendmail(frm, [to], msg.as_string())
+                print "Emailed %s <%s> which was paired up with %s" % (pair.giver.name, to, pair.reciever.name)
+                print result
+
 
         if send:
             server.quit()

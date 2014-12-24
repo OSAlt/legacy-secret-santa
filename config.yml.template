@@ -1,42 +1,24 @@
 # Required to connect to your outgoing mail server. Example for using gmail:
 # gmail
-SMTP_SERVER: smtp.gmail.com
-SMTP_PORT: 587
-USERNAME: you@gmail.com
-PASSWORD: "you're-password"
+SMTP_SERVER: hostname 
+SMTP_PORT: 465
+USERNAME: USER
+PASSWORD: superSecretPassword
 
 TIMEZONE: 'US/Pacific'
 
 PARTICIPANTS:
-  - Chad <chad@somewhere.net>
-  - Jen <jen@gmail.net>
-  - Bill <Bill@somedomain.net>
-  - Sharon <Sharon@hi.org>
+  - Joe Bob <bob@aol.com> http://www.amazon.com/AmazonOrAnyWishList
+  - Billy  <billy@linux.com> http://www.thinkgeek.com/foobar/wishlist
 
-
-# Warning -- if you mess this up you could get an infinite loop
-DONT-PAIR:
-  - Chad, Jen    # Chad and Jen are married
-  - Chad, Bill   # Chad and Bill are best friends
-  - Bill, Sharon
 
 # From address should be the organizer in case participants have any questions
-FROM: You <you@gmail.net>
+FROM: Santa Claus <santa@northpole.com>
 
 # Both SUBJECT and MESSAGE can include variable substitution for the 
 # "santa" and "santee"
 SUBJECT: Your secret santa recipient is {santee}
-MESSAGE: 
-  Dear {santa},
-  
-  This year you are {santee}'s Secret Santa!. Ho Ho Ho!
-  
-  The maximum spending limit is 50.00
-  
-  
-  This message was automagically generated from a computer. 
-  
-  Nothing could possibly go wrong...
-  
-  http://github.com/underbluewaters/secret-santa
-  
+MESSAGE: markdown
+TEMPLATE: email.md
+TEMPLATE_LOGO: True
+TEMPLATE_IMAGE: http://hostname.com/foobar.png
