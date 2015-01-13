@@ -1,0 +1,33 @@
+# NOTE:  this is very similar to config.yml but the behavior of mass_mail is different enough 
+# that you might want to have a different config for the mass_mail script.  
+#
+# At some point this functionality will be pulled into the secret_santa script when I get motivated enough 
+# to refactor it properly.
+#
+
+
+# Required to connect to your outgoing mail server. Example for using gmail:
+# gmail
+SMTP_SERVER: hostname 
+SMTP_PORT: 465
+USERNAME: USER
+PASSWORD: superSecretPassword
+
+TIMEZONE: 'US/Pacific'
+
+PARTICIPANTS:
+  - Joe Bob <bob@aol.com> 
+  - Billy  <billy@linux.com>
+
+
+
+# From address should be the organizer in case participants have any questions
+FROM: Santa Claus <santa@nixiepixel.com>
+
+# Both SUBJECT and MESSAGE can include variable substitution for the 
+# "santa" and "santee"
+SUBJECT: A friendly reminder from Santa
+MESSAGE: markdown
+TEMPLATE: mass_mail.md
+TEMPLATE_LOGO: False
+TEMPLATE_IMAGE: http://hostname.com/foobar.png
