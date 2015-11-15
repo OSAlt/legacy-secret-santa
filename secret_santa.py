@@ -54,7 +54,7 @@ def parse_yaml(yaml_path=CONFIG_PATH):
 
 def choose_receiver(giver, receivers):
     choice = random.choice(receivers)
-    if choice.name in giver.invalid_matches or giver.name == choice.name or transformations.cn_to_ctn(choice.country) != transformations.cn_to_ctn(giver.country):
+    if choice.name in giver.invalid_matches or giver.name == choice.name or choice.continent != giver.continent:
         if len(receivers) is 1:
             raise Exception('Only one reciever left, try again')
         return choose_receiver(giver, receivers)
@@ -109,7 +109,7 @@ def main(argv=None):
 
         givers = []
         for person in participants:
-            name, email, amazon, country = re.match(r'([^<]*)<([^>]*)>.*(http.*) ([A-z]{2})', person).groups()
+            name, email, amazon, country = re.match(r'([^<]*)<([^>]*)>.*(http[^ ]*) ([^<]+)', person).groups()
             name = name.strip()
             invalid_matches = []
             person = Person(name, email, invalid_matches, amazon, country)

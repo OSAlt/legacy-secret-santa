@@ -1,6 +1,6 @@
 # Required to connect to your outgoing mail server. Example for using gmail:
 # gmail
-SMTP_SERVER: hostname 
+SMTP_SERVER: hostname
 SMTP_PORT: 465
 USERNAME: USER
 PASSWORD: superSecretPassword
@@ -8,14 +8,14 @@ PASSWORD: superSecretPassword
 TIMEZONE: 'US/Pacific'
 
 PARTICIPANTS:
-  - Joe Bob <bob@aol.com> http://www.amazon.com/AmazonOrAnyWishList
-  - Billy  <billy@linux.com> http://www.thinkgeek.com/foobar/wishlist
+  - Joe Bob <bob@aol.com> http://www.amazon.com/AmazonOrAnyWishList United States of America
+  - Billy  <billy@linux.com> http://www.thinkgeek.com/foobar/wishlist Sweden
 
 
 # From address should be the organizer in case participants have any questions
 FROM: Santa Claus <santa@northpole.com>
 
-# Both SUBJECT and MESSAGE can include variable substitution for the 
+# Both SUBJECT and MESSAGE can include variable substitution for the
 # "santa" and "santee"
 SUBJECT: Your secret santa recipient is {santee}
 MESSAGE: markdown

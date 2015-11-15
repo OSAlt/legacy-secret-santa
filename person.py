@@ -6,7 +6,13 @@ class Person:
         self.email = email
         self.invalid_matches = invalid_matches
         self.amazon = amazon
-        self.country = transformations.cc_to_cn(country)
+        try:
+            self.continent = transformations.cn_to_ctn(country)
+        except KeyError as e:
+            self.continent = transformations.cn_to_ctn(self.__handle_country_name(country))
+
+    def __handle_country_name(country):
+        return "United States of America"
 
     def amazon_url(self):
         return self.amazon
