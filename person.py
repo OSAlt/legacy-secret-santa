@@ -11,8 +11,14 @@ class Person:
         except KeyError as e:
             self.continent = transformations.cn_to_ctn(self.__handle_country_name(country))
 
-    def __handle_country_name(country):
-        return "United States of America"
+    # Some names in ISO 3166 are almost impossible to get right. So lets help
+    # our users out a little bit by matching some common ones.
+    def __handle_country_name(self, country):
+        for long_name in ["United States of America",
+                          "United Kingdom of Great Britain & Northern Ireland"]:
+            if long_name.find(country) != -1:
+                return long_name
+        raise KeyError(country)
 
     def amazon_url(self):
         return self.amazon
