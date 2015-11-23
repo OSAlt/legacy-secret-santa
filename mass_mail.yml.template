@@ -16,8 +16,9 @@ PASSWORD: superSecretPassword
 TIMEZONE: 'US/Pacific'
 
 PARTICIPANTS:
-  - Joe Bob <bob@aol.com> 
-  - Billy  <billy@linux.com>
+  - Joe Bob <bob@aol.com> http://www.amazon.com/AmazonOrAnyWishList United States of America
+  - Billy  <billy@linux.com> http://www.thinkgeek.com/foobar/wishlist Sweden
+
 
 
 
@@ -27,7 +28,6 @@ FROM: Santa Claus <santa@nixiepixel.com>
 # Both SUBJECT and MESSAGE can include variable substitution for the 
 # "santa" and "santee"
 SUBJECT: A friendly reminder from Santa
-MESSAGE: markdown
 TEMPLATE: mass_mail.md
 TEMPLATE_LOGO: False
 TEMPLATE_IMAGE: http://hostname.com/foobar.png

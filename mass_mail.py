@@ -3,7 +3,6 @@ import argparse
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 import random
-import re
 import smtplib
 import datetime
 import socket
@@ -11,23 +10,16 @@ import markdown
 import pytz
 import time
 import yaml
-from person import Person
+from santa_lib.person import Person
 
-
-REQRD = (
-    'SMTP_SERVER',
-    'SMTP_PORT',
-    'USERNAME',
-    'PASSWORD',
-    'TIMEZONE',
-    'PARTICIPANTS',
-    'FROM',
-    'SUBJECT',
-)
+REQUIRED = ['SMTP_SERVER', 'SMTP_PORT', 'USERNAME', 'PASSWORD', 'TIMEZONE', 'PARTICIPANTS', 'FROM', 'SUBJECT']
 
 
 def load_config(config_file):
-    return yaml.load(open(config_file))
+    try:
+        return yaml.load(open(config_file))
+    except:
+        print("Error, %s was not found" % config_file)
 
 
 def load_participants(config):
@@ -38,13 +30,9 @@ def load_participants(config):
 
     people = []
     for person in config['PARTICIPANTS']:
-        name, email = re.match(r'([^<]*)<([^>]*)>', person).groups()
-        name = name.strip()
-        invalid_matches = []
-        person = Person(name, email, invalid_matches, None)
+        person = Person.construct_email_recipient(person)
         if person is not None:
             people.append(person)
-
     return people
 
 
@@ -96,13 +84,17 @@ def main():
     parser.add_argument('--send', action="store_true", dest="send", default=False, help="Enables Local Mode")
     parser.add_argument('--config', action="store", dest="config", type=str,
                         help="Override default config file (config.yml)and specify your own yaml config",
-                        default='config.yml')
+                        default='mass_mail.yml')
 
     args = parser.parse_args()
     config_file = args.config
     send = args.send
     config = load_config(config_file)
-    for key in REQRD:
+
+    if config is None:
+        return
+
+    for key in REQUIRED:
         if key not in config.keys():
             raise Exception(
                 'Required parameter %s not in yaml config file!' % (key,))

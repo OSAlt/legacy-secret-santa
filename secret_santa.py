@@ -1,190 +1,52 @@
 #!/usr/bin/env python
-import yaml
-import re
-import random
-import smtplib
-import datetime
-import pytz
-import time
-import socket
+import argparse
+import inspect
+import logging
 import sys
-import getopt
 import os
-import markdown
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
-from incf.countryutils import transformations
-
-from pair import Pair
-from person import Person
-
-help_message = '''
-To use, fill out config.yml with your own participants.
-
-You'll also need to specify your mail server settings.
-
-For more information, see README.
-'''
-
-REQRD = (
-    'SMTP_SERVER',
-    'SMTP_PORT',
-    'USERNAME',
-    'PASSWORD',
-    'TIMEZONE',
-    'PARTICIPANTS',
-    'FROM',
-    'SUBJECT',
-    'MESSAGE',
-)
-
-HEADER = """Date: {date}
-Content-Type: text/plain; charset="utf-8"
-Message-Id: {message_id}
-From: {frm}
-To: {to}
-Subject: {subject}
-
-"""
-
-CONFIG_PATH = os.path.join(os.path.dirname(__file__), 'config.yml')
-
-def parse_yaml(yaml_path=CONFIG_PATH):
-    return yaml.load(open(yaml_path))
-
-def choose_receiver(giver, receivers):
-    choice = random.choice(receivers)
-    if choice.name in giver.invalid_matches or giver.name == choice.name or choice.continent != giver.continent:
-        if len(receivers) is 1:
-            raise Exception('Only one reciever left, try again')
-        return choose_receiver(giver, receivers)
-    else:
-        return choice
-
-def create_pairs(g, r):
-    givers = g[:]
-    receivers = r[:]
-    pairs = []
-    for giver in givers:
-        try:
-            receiver = choose_receiver(giver, receivers)
-            receivers.remove(receiver)
-            pairs.append(Pair(giver, receiver))
-        except:
-            return create_pairs(g, r)
-    return pairs
+from santa_lib.santa import Santa
 
 
-class Usage(Exception):
-    def __init__(self, msg):
-        self.msg = msg
+def setup_logger(settings):
+    path = os.path.join(os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe()))))
+    log_file = os.path.basename(__file__).replace(".py", ".log")
+    location = os.path.join(path, log_file)
+
+    # Seting up file logging
+    logger = logging.getLogger(log_file)
+    logger.setLevel(logging.DEBUG)
+    # Ensures that log is only kept for one iteration.
+
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    if 'file_logger' in settings:
+        # file Logger settings
+        file_handler = logging.FileHandler(filename=location, mode='w')
+        file_handler.setLevel(logging.DEBUG)
+        file_handler.setFormatter(formatter)
+        logger.addHandler(file_handler)
+    if 'console_logger' in settings:
+        # Console logging
+        console_handler = logging.StreamHandler()
+        console_handler.setLevel(logging.DEBUG)
+        console_handler.setFormatter(formatter)
+        logger.addHandler(console_handler)
+
+    return logger
 
 
-def main(argv=None):
-    if argv is None:
-        argv = sys.argv
-    try:
-        try:
-            opts, args = getopt.getopt(argv[1:], "shc", ["send", "help"])
-        except getopt.error, msg:
-            raise Usage(msg)
+def main():
+    parser = argparse.ArgumentParser(description='Secret Santa Matcher')
+    parser.add_argument('--send', action="store_true", dest="send", default=False,
+                        help="Actually send email (defaults to dry run mode)")
 
-        # option processing
-        send = False
-        for option, value in opts:
-            if option in ("-s", "--send"):
-                send = True
-            if option in ("-h", "--help"):
-                raise Usage(help_message)
+    args = parser.parse_args()
 
-        config = parse_yaml()
-        for key in REQRD:
-            if key not in config.keys():
-                raise Exception(
-                    'Required parameter %s not in yaml config file!' % (key,))
+    logger = setup_logger(['console_logger'])
 
-        participants = config['PARTICIPANTS']
-        if len(participants) < 2:
-            raise Exception('Not enough participants specified.')
-
-        givers = []
-        for person in participants:
-            name, email, amazon, country = re.match(r'([^<]*)<([^>]*)>.*(http[^ ]*) ([^<]+)', person).groups()
-            name = name.strip()
-            invalid_matches = []
-            person = Person(name, email, invalid_matches, amazon, country)
-            givers.append(person)
-
-        receivers = givers[:]
-        pairs = create_pairs(givers, receivers)
-        if not send:
-            print """
-Test pairings:
-
-%s
-
-To send out emails with new pairings,
-call with the --send argument:
-
-    $ python secret_santa.py --send
-
-            """ % ("\n".join([str(p) for p in pairs]))
-
-        if send:
-            server = smtplib.SMTP_SSL(config['SMTP_SERVER'], config['SMTP_PORT'])
-            # server.starttls()
-            server.login(config['USERNAME'], config['PASSWORD'])
-        for pair in pairs:
-            msg = MIMEMultipart('alternative')
-
-            zone = pytz.timezone(config['TIMEZONE'])
-            now = zone.localize(datetime.datetime.now())
-            date = now.strftime('%a, %d %b %Y %T %Z') # Sun, 21 Dec 2008 06:25:23 +0000
-            message_id = '<%s@%s>' % (str(time.time())+str(random.random()), socket.gethostname())
-            frm = config['FROM']
-            to = pair.giver.email
-            subject = config['SUBJECT'].format(santa=pair.giver.name, santee=pair.receiver.name)
-            message = config['MESSAGE']
-            if message == 'markdown':
-                template_file = config['TEMPLATE']
-                file_handle = open(template_file, 'r')
-                raw = file_handle.read()
-                message = markdown.markdown(raw)
-                # if config['TEMPLATE_LOGO']:
-                #     message += """<br><img src="cid:logo.png"><br>"""
-
-            body = message.format(
-                date=date,
-                message_id=message_id,
-                frm=frm,
-                to=to,
-                subject=subject,
-                santa=pair.giver.name,
-                santee=pair.receiver.name,
-                santee_email=pair.receiver.email,
-                amazon=pair.receiver.amazon
-            )
-            if config['TEMPLATE_LOGO']:
-                    image_url = config['TEMPLATE_IMAGE']
-                    body += """<div align="center"><img alt="Bender Logo" src="{encoded}" /></div>""".format(encoded=image_url)
-            msg['Subject'] = subject
-            msg['From'] = frm
-            msg['To'] = to
-            if send:
-                part1 = MIMEText(body, 'html')
-                msg.attach(part1)
-
-                server.sendmail(frm, [to], msg.as_string())
-                print "Emailed %s <%s> which was paired up with %s" % (pair.giver.name, to, pair.receiver.name)
-
-
-        if send:
-            server.quit()
-
-    except Usage, err:
-        print >> sys.stderr, sys.argv[0].split("/")[-1] + ": " + str(err.msg)
-        print >> sys.stderr, "\t for help use --help"
-        return 2
+    send = args.send
+    config_file = inspect.getfile(inspect.currentframe()).replace(".py", ".yml")
+    santa = Santa(logger, send, config_file)
+    santa.process_data()
 
 
 if __name__ == "__main__":

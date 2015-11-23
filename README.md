@@ -9,8 +9,7 @@ specified.
 Dependencies
 ------------
 
-pytz
-pyyaml
+see requirements.txt
 
 Usage
 -----
@@ -39,11 +38,6 @@ Here is the example configuration unchanged:
       - Bill <Bill@somedomain.net>
       - Sharon <Sharon@hi.org>
 
-    # Warning -- if you mess this up you could get an infinite loop
-    DONT-PAIR:
-      - Chad, Jen    # Chad and Jen are married
-      - Chad, Bill   # Chad and Bill are best friends
-      - Bill, Sharon
 
     # From address should be the organizer in case participants have any questions
     FROM: You <you@gmail.net>
