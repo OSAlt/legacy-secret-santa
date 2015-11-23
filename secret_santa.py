@@ -1,4 +1,4 @@
-#!/usr/bin/env python 
+#!/usr/bin/env python
 import yaml
 import re
 import random
@@ -13,6 +13,7 @@ import os
 import markdown
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from incf.countryutils import transformations
 
 from pair import Pair
 from person import Person
@@ -26,14 +27,14 @@ For more information, see README.
 '''
 
 REQRD = (
-    'SMTP_SERVER', 
-    'SMTP_PORT', 
-    'USERNAME', 
-    'PASSWORD', 
-    'TIMEZONE', 
-    'PARTICIPANTS', 
+    'SMTP_SERVER',
+    'SMTP_PORT',
+    'USERNAME',
+    'PASSWORD',
+    'TIMEZONE',
+    'PARTICIPANTS',
     'FROM',
-    'SUBJECT', 
+    'SUBJECT',
     'MESSAGE',
 )
 
@@ -43,19 +44,19 @@ Message-Id: {message_id}
 From: {frm}
 To: {to}
 Subject: {subject}
-        
+
 """
 
 CONFIG_PATH = os.path.join(os.path.dirname(__file__), 'config.yml')
 
 def parse_yaml(yaml_path=CONFIG_PATH):
-    return yaml.load(open(yaml_path))    
+    return yaml.load(open(yaml_path))
 
 def choose_receiver(giver, receivers):
     choice = random.choice(receivers)
-    if choice.name in giver.invalid_matches or giver.name == choice.name:
+    if choice.name in giver.invalid_matches or giver.name == choice.name or choice.continent != giver.continent:
         if len(receivers) is 1:
-            raise Exception('Only one reliever left, try again')
+            raise Exception('Only one reciever left, try again')
         return choose_receiver(giver, receivers)
     else:
         return choice
@@ -87,7 +88,7 @@ def main(argv=None):
             opts, args = getopt.getopt(argv[1:], "shc", ["send", "help"])
         except getopt.error, msg:
             raise Usage(msg)
-    
+
         # option processing
         send = False
         for option, value in opts:
@@ -95,7 +96,7 @@ def main(argv=None):
                 send = True
             if option in ("-h", "--help"):
                 raise Usage(help_message)
-                
+
         config = parse_yaml()
         for key in REQRD:
             if key not in config.keys():
@@ -105,30 +106,30 @@ def main(argv=None):
         participants = config['PARTICIPANTS']
         if len(participants) < 2:
             raise Exception('Not enough participants specified.')
-        
+
         givers = []
         for person in participants:
-            name, email, amazon = re.match(r'([^<]*)<([^>]*)>.*(http.*)', person).groups()
+            name, email, amazon, country = re.match(r'([^<]*)<([^>]*)>.*(http[^ ]*) ([^<]+)', person).groups()
             name = name.strip()
             invalid_matches = []
-            person = Person(name, email, invalid_matches, amazon)
+            person = Person(name, email, invalid_matches, amazon, country)
             givers.append(person)
-        
+
         receivers = givers[:]
         pairs = create_pairs(givers, receivers)
         if not send:
             print """
 Test pairings:
-                
+
 %s
-                
+
 To send out emails with new pairings,
 call with the --send argument:
 
     $ python secret_santa.py --send
-            
+
             """ % ("\n".join([str(p) for p in pairs]))
-        
+
         if send:
             server = smtplib.SMTP_SSL(config['SMTP_SERVER'], config['SMTP_PORT'])
             # server.starttls()
@@ -153,9 +154,9 @@ call with the --send argument:
                 #     message += """<br><img src="cid:logo.png"><br>"""
 
             body = message.format(
-                date=date, 
-                message_id=message_id, 
-                frm=frm, 
+                date=date,
+                message_id=message_id,
+                frm=frm,
                 to=to,
                 subject=subject,
                 santa=pair.giver.name,
@@ -179,7 +180,7 @@ call with the --send argument:
 
         if send:
             server.quit()
-        
+
     except Usage, err:
         print >> sys.stderr, sys.argv[0].split("/")[-1] + ": " + str(err.msg)
         print >> sys.stderr, "\t for help use --help"
