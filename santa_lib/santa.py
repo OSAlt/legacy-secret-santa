@@ -72,9 +72,14 @@ call with the --send argument:
         return pairs
 
     def send_mail(self, pairs):
+        server = None
         # Connect to mail server
-        server = smtplib.SMTP_SSL(self.config['SMTP_SERVER'], self.config['SMTP_PORT'])
-        # server.starttls()
+        if self.config.get('USE_TLS'):
+            server = smtplib.SMTP(self.config['SMTP_SERVER'], self.config['SMTP_PORT'])
+            server.starttls()
+        else:
+            server = smtplib.SMTP_SSL(self.config['SMTP_SERVER'], self.config['SMTP_PORT'])
+
         server.login(self.config['USERNAME'], self.config['PASSWORD'])
 
         for pair in pairs:
@@ -92,20 +97,20 @@ call with the --send argument:
             raw = file_handle.read()
             message = markdown.markdown(raw)
             body = message.format(
-                date=date,
-                message_id=message_id,
-                frm=frm,
-                to=to,
-                subject=subject,
-                santa=pair.giver.name,
-                santee=pair.receiver.name,
-                santee_email=pair.receiver.email,
-                amazon=pair.receiver.amazon
+                    date=date,
+                    message_id=message_id,
+                    frm=frm,
+                    to=to,
+                    subject=subject,
+                    santa=pair.giver.name,
+                    santee=pair.receiver.name,
+                    santee_email=pair.receiver.email,
+                    amazon=pair.receiver.amazon
             )
             if self.config['TEMPLATE_LOGO']:
                 image_url = self.config['TEMPLATE_IMAGE']
                 body += """<div align="center"><img alt="Bender Logo" src="{encoded}" /></div>""".format(
-                    encoded=image_url)
+                        encoded=image_url)
             msg['Subject'] = subject
             msg['From'] = frm
             msg['To'] = to
@@ -138,5 +143,3 @@ call with the --send argument:
         else:
             self.logger.info(self.TEMPLATE_MSG % ("\n".join([str(p) for p in pairs])))
             return
-
-

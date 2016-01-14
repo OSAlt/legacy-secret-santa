@@ -9,9 +9,10 @@
 # Required to connect to your outgoing mail server. Example for using gmail:
 # gmail
 SMTP_SERVER: hostname 
-SMTP_PORT: 465
+SMTP_PORT: 587
 USERNAME: USER
 PASSWORD: superSecretPassword
+USE_TLS: True
 
 TIMEZONE: 'US/Pacific'
 
@@ -28,6 +29,6 @@ FROM: Santa Claus <santa@nixiepixel.com>
 # Both SUBJECT and MESSAGE can include variable substitution for the 
 # "santa" and "santee"
 SUBJECT: A friendly reminder from Santa
-TEMPLATE: mass_mail.md
+TEMPLATE: templates/mass_mail.md
 TEMPLATE_LOGO: False
 TEMPLATE_IMAGE: http://hostname.com/foobar.png

@@ -37,7 +37,13 @@ def load_participants(config):
 
 
 def send_emails(config, people):
-    server = smtplib.SMTP_SSL(config['SMTP_SERVER'], config['SMTP_PORT'])
+    server = None
+    if config.get('USE_TLS'):
+        server = smtplib.SMTP(config['SMTP_SERVER'], config['SMTP_PORT'])
+        server.starttls()
+    else:
+        server = smtplib.SMTP_SSL(config['SMTP_SERVER'], config['SMTP_PORT'])
+    # server = smtplib.SMTP(config['SMTP_SERVER'], config['SMTP_PORT'])
     server.login(config['USERNAME'], config['PASSWORD'])
 
     for person in people:
