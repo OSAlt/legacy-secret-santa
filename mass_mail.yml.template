@@ -8,11 +8,17 @@
 
 # Required to connect to your outgoing mail server. Example for using gmail:
 # gmail
-SMTP_SERVER: hostname 
+SMTP_SERVER: smtp.gmail.com
 SMTP_PORT: 587
 USERNAME: USER
 PASSWORD: superSecretPassword
 USE_TLS: True
+# gator
+#SMTP_SERVER: gator3318.hostgator.com
+#SMTP_PORT: 465
+#USERNAME: user@domain.com
+#PASSWORD: shhhItsSecret
+#USE_TLS: False
 
 TIMEZONE: 'US/Pacific'
 

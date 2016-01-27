@@ -10,16 +10,19 @@ import markdown
 import pytz
 import time
 import yaml
+
+from santa_lib.common import setup_logger
 from santa_lib.person import Person
 
 REQUIRED = ['SMTP_SERVER', 'SMTP_PORT', 'USERNAME', 'PASSWORD', 'TIMEZONE', 'PARTICIPANTS', 'FROM', 'SUBJECT']
 
+global logger
 
 def load_config(config_file):
     try:
         return yaml.load(open(config_file))
     except:
-        print("Error, %s was not found" % config_file)
+        logger.error("Error, %s was not found" % config_file)
 
 
 def load_participants(config):
@@ -62,17 +65,17 @@ def send_emails(config, people):
         message = markdown.markdown(raw)
 
         body = message.format(
-            date=date,
-            message_id=message_id,
-            frm=frm,
-            to=to,
-            subject=subject,
-            person=person.name
+                date=date,
+                message_id=message_id,
+                frm=frm,
+                to=to,
+                subject=subject,
+                person=person.name
         )
         if config['TEMPLATE_LOGO']:
             image_url = config['TEMPLATE_IMAGE']
             body += """<div align="center"><img alt="Bender Logo" src="{encoded}" /></div>""".format(
-                encoded=image_url)
+                    encoded=image_url)
         msg['Subject'] = subject
         msg['From'] = frm
         msg['To'] = to
@@ -80,12 +83,13 @@ def send_emails(config, people):
         msg.attach(part1)
 
         server.sendmail(frm, [to], msg.as_string())
-        print "Email was sent to: {name} <{email}>.".format(name=person.name, email=person.email)
+        logger.info("Email was sent to: {} <{}>.".format(person.name, person.email))
 
     server.quit()
 
 
 def main():
+    global logger
     parser = argparse.ArgumentParser(description='Santa Mass Email script')
     parser.add_argument('--send', action="store_true", dest="send", default=False, help="Enables Local Mode")
     parser.add_argument('--config', action="store", dest="config", type=str,
@@ -93,6 +97,9 @@ def main():
                         default='mass_mail.yml')
 
     args = parser.parse_args()
+
+    logger = setup_logger(['console_logger', 'file_logger'], 'mass_mail.log')
+
     config_file = args.config
     send = args.send
     config = load_config(config_file)
@@ -103,7 +110,7 @@ def main():
     for key in REQUIRED:
         if key not in config.keys():
             raise Exception(
-                'Required parameter %s not in yaml config file!' % (key,))
+                    'Required parameter %s not in yaml config file!' % (key,))
 
     ## Load participants
     people = load_participants(config)

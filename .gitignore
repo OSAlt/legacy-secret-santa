@@ -3,3 +3,6 @@ config.yml
 mass_mail.yml
 .idea
 secret_santa.yml
+logs
+templates/*.md
+santa_logs

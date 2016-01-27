@@ -4,48 +4,30 @@ import inspect
 import logging
 import sys
 import os
+
+from santa_lib.common import setup_logger
 from santa_lib.santa import Santa
 
 
-def setup_logger(settings):
-    path = os.path.join(os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe()))))
-    log_file = os.path.basename(__file__).replace(".py", ".log")
-    location = os.path.join(path, log_file)
-
-    # Seting up file logging
-    logger = logging.getLogger(log_file)
-    logger.setLevel(logging.DEBUG)
-    # Ensures that log is only kept for one iteration.
-
-    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-    if 'file_logger' in settings:
-        # file Logger settings
-        file_handler = logging.FileHandler(filename=location, mode='w')
-        file_handler.setLevel(logging.DEBUG)
-        file_handler.setFormatter(formatter)
-        logger.addHandler(file_handler)
-    if 'console_logger' in settings:
-        # Console logging
-        console_handler = logging.StreamHandler()
-        console_handler.setLevel(logging.DEBUG)
-        console_handler.setFormatter(formatter)
-        logger.addHandler(console_handler)
-
-    return logger
 
 
 def main():
     parser = argparse.ArgumentParser(description='Secret Santa Matcher')
     parser.add_argument('--send', action="store_true", dest="send", default=False,
                         help="Actually send email (defaults to dry run mode)")
+    parser.add_argument('--resend', action="store_true", dest="resend", default=False,
+                        help="Resend the emails saved in santa_logs, skip pairing")
+    parser.add_argument('--report', action="store_true", dest="report", default=False,
+                        help="Generate a report on the candidates")
 
     args = parser.parse_args()
 
-    logger = setup_logger(['console_logger'])
+    logger = setup_logger(['console_logger', 'file_logger'], 'secret_santa.log')
 
     send = args.send
+    report = args.report
     config_file = inspect.getfile(inspect.currentframe()).replace(".py", ".yml")
-    santa = Santa(logger, send, config_file)
+    santa = Santa(logger, send, report, args.resend, config_file)
     santa.process_data()
 
 
